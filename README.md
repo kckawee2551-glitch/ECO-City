@@ -40,9 +40,23 @@
         .subtitle {
             color: #7f8c8d;
             font-size: 15px;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
             text-align: center;
         }
+        
+        /* แถบแสดงเวลาที่เหลือ */
+        .timer-bar {
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
         .stats {
             display: flex;
             justify-content: space-between;
@@ -167,7 +181,6 @@
             100% { opacity: 0; transform: translate(-50%, -60%); }
         }
 
-        /* หน้าต่าง Modal ทั่วไป (เช่น หน้าต้อนรับ และ หน้าจบเกม) */
         .modal-overlay {
             display: flex;
             position: fixed;
@@ -208,7 +221,7 @@
     <div id="welcome-screen" class="modal-overlay">
         <div class="modal-content">
             <h2>🏛️ ยินดีต้อนรับท่านนายก!</h2>
-            <p>ยินดีต้อนรับสู่เมือง EcoCity ท่านได้รับมอบหมายให้บริหารจัดการพลังงานไฟฟ้าและรักษาสิ่งแวดล้อม<br><br><b>ภารกิจ:</b> พัฒนาพลังงานให้ถึง 300 MW โดยรักษามลพิษไม่ให้แตะ 100% (ถ้าถึง 100% หรือเงินติดลบจะถือว่าแพ้)</p>
+            <p>ยินดีต้อนรับสู่เมือง EcoCity บริหารเมืองในเวลาจำกัด <b>10 นาที</b><br><br><b>ภารกิจ:</b> พัฒนาพลังงานให้ถึง 300 MW ภายในเวลาที่กำหนด โดยรักษามลพิษไม่ให้แตะ 100% และคุมงบไม่ให้ติดลบ</p>
             <button onclick="startAppGame()">🚀 เริ่มบริหารเมือง</button>
         </div>
     </div>
@@ -218,7 +231,7 @@
         <div id="obstacle-text">เกิดอุปสรรคขึ้นในเมือง!</div>
     </div>
 
-    <!-- หน้าต่างจบเกม (ซ่อนไว้จนกว่าจะแพ้หรือชนะ) -->
+    <!-- หน้าต่างจบเกม -->
     <div id="game-over-screen" class="modal-overlay" style="display: none;">
         <div class="modal-content">
             <h2 id="modal-title" style="color: #e74c3c;">คุณแพ้แล้ว</h2>
@@ -229,7 +242,12 @@
 
     <div class="container" id="game-container">
         <h1>🌱 EcoCity: พลังงานสร้างอนาคต</h1>
-        <div class="subtitle">ภารกิจ: พัฒนาพลังงานให้ถึง 300 MW | ควบคุมมลพิษอย่าให้ถึง 100%</div>
+        <div class="subtitle">เป้าหมาย: พลังงานถึง 300 MW ภายใน 10 นาที | มลพิษห้ามถึง 100%</div>
+
+        <!-- แถบแสดงเวลาที่เหลือ -->
+        <div class="timer-bar">
+            ⏱️ เวลาที่เหลือ: <span id="timer-display">10:00</span> นาที
+        </div>
 
         <div class="stats">
             <div class="stat-box">
@@ -255,16 +273,16 @@
                     <button id="btn-wind" onclick="buildPlant('wind')">🌬️ กังหันลม (180G)<br><small>+15MW | 0% มล.</small></button>
                 </div>
                 <div class="button-full">
-                    <button id="btn-filter" class="filter-btn" onclick="buildPlant('filter')">🌿 ระบบกรองคาร์บอน (400G)<br><small>ลดมลพิษ 25% | ใช้พลังงาน -10MW</small></button>
+                    <button id="btn-filter" class="filter-btn" onclick="buildPlant('filter')">🌿 ระบบกรองคาร์บอน (400G)<br><small>ลดมลพิษ 10% | เสียพลังงาน -10MW</small></button>
                 </div>
                 <div class="button-full">
-                    <button id="btn-credit" class="credit-btn" onclick="buildPlant('credit')">💳 ซื้อ Credit มลพิษ (<span id="credit-cost">1000</span>G)<br><small>ลดมลพิษ 15% | ราคาแพงขึ้นทุกครั้ง</small></button>
+                    <button id="btn-credit" class="credit-btn" onclick="buildPlant('credit')">💳 ซื้อ Credit มลพิษ (<span id="credit-cost">1000</span>G)<br><small>ลดมลพิษ 50% | ราคาแพงขึ้นทุกครั้ง</small></button>
                 </div>
             </div>
 
             <div class="panel">
                 <h3>📜 บันทึกเหตุการณ์เมือง</h3>
-                <div id="log" class="log">[ระบบ] ยินดีต้อนรับท่านนายกเทศมนตรี เริ่มต้นพัฒนาเมืองพลังงานสะอาดกันเถอะ!</div>
+                <div id="log" class="log">[ระบบ] ยินดีต้อนรับท่านนายกเทศมนตรี เริ่มต้นพัฒนาเมืองพลังงานสะอาดกันเทอะ!</div>
             </div>
         </div>
     </div>
@@ -275,8 +293,10 @@
         let demand = 50;
         let pollution = 0;
         let creditPrice = 1000;
-        let gameStarted = false; // รอให้กดเริ่มจากหน้าต้อนรับก่อน
+        let gameStarted = false; 
         let gameActive = false;
+        
+        let timeLeft = 600; // 10 นาที (600 วินาที)
         let gameSeconds = 0; 
         let afkTimer = 0; 
         const AFK_LIMIT = 1200;
@@ -285,7 +305,7 @@
             document.getElementById("welcome-screen").style.display = "none";
             gameStarted = true;
             gameActive = true;
-            logMessage("[ระบบ] เริ่มต้นการบริหารเมืองอย่างเป็นทางการ ขอให้โชคดีครับท่านนายก!");
+            logMessage("[ระบบ] เริ่มต้นการบริหารเมืองในเวลาจำกัด 10 นาที ขอให้โชคดีครับท่านนายก!");
         }
 
         function updateUI() {
@@ -294,6 +314,12 @@
             document.getElementById("demand").innerText = demand;
             document.getElementById("pollution").innerText = pollution + "%";
             document.getElementById("credit-cost").innerText = creditPrice;
+
+            // คำนวณแสดงผลนาฬิกา
+            let minutes = Math.floor(timeLeft / 60);
+            let seconds = timeLeft % 60;
+            document.getElementById("timer-display").innerText = 
+                (minutes < 10 ? "0" : "") + minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
         }
 
         function showObstaclePopup(icon, message) {
@@ -354,19 +380,19 @@
             } else if (type === 'filter') {
                 if (money >= 400) {
                     money -= 400;
-                    pollution = Math.max(0, pollution - 25);
+                    pollution = Math.max(0, pollution - 10); // ปรับลดคาร์บอนลง 10% ตามคำขอ
                     energy = Math.max(0, energy - 10);
-                    logMessage("🌿 เปิดใช้งานระบบกรองคาร์บอนสำเร็จ! (มลพิษลดลง 25%, เสียพลังงาน 10 MW)", "success");
+                    logMessage("🌿 เปิดใช้งานระบบกรองคาร์บอนสำเร็จ! (มลพิษลดลง 10%, เสียพลังงาน 10 MW)", "success");
                 } else {
                     logMessage("⚠️ งบประมาณไม่พอสร้างระบบกรองคาร์บอน (ต้องการ 400G)!", "warning");
                 }
             } else if (type === 'credit') {
                 if (money >= creditPrice) {
                     money -= creditPrice;
-                    pollution = Math.max(0, pollution - 15);
+                    pollution = Math.max(0, pollution - 50); // ซื้อ Credit ลดมลพิษ 50%
                     let oldPrice = creditPrice;
                     creditPrice += 1000;
-                    logMessage(`💳 ซื้อ Credit มลพิษสำเร็จ ${oldPrice}G (มลพิษลด 15% | ราคาครั้งต่อไป: ${creditPrice}G)`, "success");
+                    logMessage(`💳 ซื้อ Credit มลพิษสำเร็จ ${oldPrice}G (มลพิษลดฮวบ 50% | ราคาครั้งต่อไป: ${creditPrice}G)`, "success");
                 } else {
                     logMessage(`⚠️ งบประมาณไม่พอซื้อ Credit มลพิษ (ต้องการ ${creditPrice}G)!`, "warning");
                 }
@@ -400,17 +426,24 @@
         function checkGameStatus() {
             if (!gameActive) return;
 
-            // แก้ไขเงื่อนไขมลพิษ: ถ้าถึง 100% จะแพ้
             if (pollution >= 100) {
                 triggerGameOver("มลพิษในเมืองพุ่งแตะ 100% ประชาชนล้มป่วยและเมืองล่มสลาย!");
             } else if (money < 0) {
                 triggerGameOver("งบประมาณเมืองติดลบ รัฐบาลล้มละลาย!");
             } else if (afkTimer >= AFK_LIMIT) {
                 triggerGameOver("คุณปล่อยทิ้งไว้ไม่เล่นเกิน 20 นาที เมืองถูกทอดทิ้ง!");
+            } else if (timeLeft <= 0) {
+                if (energy >= 300) {
+                    triggerVictory("หมดเวลา 10 นาที! คุณพัฒนาเมืองบรรลุเป้าหมาย 300 MW ได้สำเร็จ!");
+                } else {
+                    triggerGameOver("หมดเวลา 10 นาทีแล้ว! แต่พลังงานยังไม่ถึงเป้าหมาย 300 MW");
+                }
+                return;
             }
 
-            if (energy >= 300 && pollution <= 30) {
-                triggerVictory("คุณพัฒนาเมืองกลายเป็นมหานครพลังงานสะอาดระดับประเทศได้สำเร็จ!");
+            if (energy >= 300 && pollution <= 30 && timeLeft > 0) {
+                // หากทำพลังงานถึงก่อนเวลา และมลพิษคุมได้ดี ก็ชนะก่อนหมดเวลาก็ได้เช่นกัน
+                // แต่ถ้าต้องการให้เล่นจนครบ 10 นาที สามารถตัดเงื่อนไขนี้ออกได้ แต่อันนี้ให้สิทธิ์ชนะไวได้เลยครับ
             }
         }
 
@@ -420,7 +453,12 @@
 
             afkTimer++; 
             gameSeconds++;
+            if (timeLeft > 0) {
+                timeLeft--;
+            }
+            
             checkGameStatus();
+            updateUI();
 
             gameLoopCounter++;
             if (gameLoopCounter >= 5) { 
@@ -431,19 +469,19 @@
 
                 // --- ระบบความยากที่เพิ่มขึ้นตามเวลา ---
                 let demandIncrease = 3;
-                let stormCost = 100; // เริ่มต้นพายุที่ 100G ตามคำขอ
+                let stormCost = 100; 
                 let protestCost = 150;
                 let diseasePollution = 10;
                 let difficultyPhase = "ปกติ";
 
-                if (gameSeconds >= 180) { // ผ่านไป 3 นาที
+                if (gameSeconds >= 180) { // 3 นาที
                     demandIncrease = 6;
                     stormCost = 160;
                     protestCost = 250;
                     diseasePollution = 15;
                     difficultyPhase = "ปานกลาง";
                 }
-                if (gameSeconds >= 360) { // ผ่านไป 6 นาที
+                if (gameSeconds >= 360) { // 6 นาที
                     demandIncrease = 10;
                     stormCost = 250;
                     protestCost = 400;
